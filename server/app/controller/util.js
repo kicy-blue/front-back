@@ -27,10 +27,9 @@ class UtilController extends BaseController {
       console.log('邮箱'+email+'验证码：'+code)
       ctx.session.emailcode = code
       const subject = 'kicy蓝 验证码'
-      const text = ''
-      const html = `<h2>kicy蓝<a href="https://github.com/kicy-blue"></a></h2>`
+      const text = `您的验证码是：${code}`
+      const html = `<h2>kicy蓝<a href="https://github.com/kicy-blue" style="color:blue"></a><h3>${code}</h3></h2>`
       const hasSend = await this.service.tools.sendMail(email,subject,text,html)
-      console.log('hasSend',hasSend,this.message)
       if(hasSend){
           this.message('发送成功')
       }else{

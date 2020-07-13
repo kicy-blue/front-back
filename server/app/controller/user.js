@@ -18,11 +18,15 @@ class UserController extends BaseController{
         this.success('token')
         const {ctx,app} = this
         const {email,captcha,passwd,emailCode} = ctx.request.body
+        console.log(ctx.session,'邮箱验证码：',emailCode)
+        console.log('ctx.session.captcha',ctx.session.captcha)
+        console.log('emailCode',emailCode,'ctx.session.emailcode',ctx.session.emailCode,emailCode!==ctx.session.emailcode)
+
         if(captcha.toUpperCase()!==ctx.session.captcha.toUpperCase()){
             return this.error('验证码错误')
         }
 
-        if(emailCode !==ctx.session.emailCode){
+        if(emailCode!==ctx.session.emailcode){
             return this.error('邮箱验证码错误')
         }
 
@@ -39,7 +43,7 @@ class UserController extends BaseController{
             _id:user._id,
             email,
         },app.config.jwt.secret,{
-            expiresIn:"5m"
+            expiresIn:"1h"
         })
         this.success({
             token,email,nickname:user.nickname
@@ -88,7 +92,13 @@ class UserController extends BaseController{
         //校验用户名是否存在
     }
     async info(){
-
+        console.log('进入请求用户接口')
+        const {ctx} = this
+        //这里还不知道是哪个用户，需要从头部请求(request Headers)的token里读取
+        //有点接口需要从token里读数据，有的不需要，==》解析token
+        const {email} = ctx.state
+        const user =await this.checkEmail(email)
+        this.success(user)
     }
 }
 

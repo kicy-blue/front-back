@@ -67,10 +67,10 @@ export default {
                     console.log('ret=',ret)
                     if(ret.code==0){
                         //token存储
-                        this.localStorage.setItem('token',res.data.token)
+                        localStorage.setItem('token',ret.data.token)
                         this.$message.success('登录成功')
                         setTimeout(()=>{
-                            this.$router.push("/")
+                            this.$router.push("/uc")
                         },500)
                     }else{
                         this.$message.error(ret.message)
