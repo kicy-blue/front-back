@@ -98,7 +98,7 @@ export default {
                 timer:0
             },
             form:{
-                email:"18802683293@163.com",
+                email:"18802683293@126.com",
                 passwd:'123456',
                 captcha:'',
                 emailCode:''

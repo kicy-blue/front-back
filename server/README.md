@@ -19,6 +19,9 @@ test
 
 ## QuickStart
 
+## 先启动数据库服务 mongodb
+
+
 <!-- add docs here for user -->
 
 see [egg docs][egg] for more detail.

@@ -10,6 +10,8 @@ module.exports = app => {
     //验证码 服务
     router.get('/captcha',controller.util.captcha)
     router.get('/sendcode',controller.util.sendcode)
+    router.post('/uploadfile',controller.util.uploadfile)
+    
     console.log('controller.user',controller.user)
 
     router.group({name:'user',prefix:'/user'},router=>{

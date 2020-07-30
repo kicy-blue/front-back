@@ -34,6 +34,7 @@ class UserController extends BaseController{
             email,
             passwd:md5(passwd*HashSalt)
         })
+        console.log('user==',user)
         if(!user){
             return this.error('用户密码错误')
         }
@@ -58,7 +59,7 @@ class UserController extends BaseController{
             return this.error('参数检验错误',-1,e.error)
         }
         const {email,passwd,captcha,nickname} = ctx.request.body
-        console.log({email,passwd,captcha,nickname})
+        // console.log({email,passwd,captcha,nickname})
 
         if(captcha.toUpperCase()===ctx.session.captcha.toUpperCase()){
             // this.success({name:'test'})
@@ -92,7 +93,7 @@ class UserController extends BaseController{
         //校验用户名是否存在
     }
     async info(){
-        console.log('进入请求用户接口')
+        // console.log('进入请求用户接口')
         const {ctx} = this
         //这里还不知道是哪个用户，需要从头部请求(request Headers)的token里读取
         //有点接口需要从token里读数据，有的不需要，==》解析token

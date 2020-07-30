@@ -5,8 +5,8 @@ module.exports = ({app})=>{
     return async function verify(ctx,next){
         if(!ctx.request.header.authorization){
             ctx.body = {
-                code:-1,
-                message:'用户没有登录'
+                code:-666,
+                message:'登录过期了'
             } 
             return
         }
