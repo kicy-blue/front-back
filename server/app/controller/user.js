@@ -34,12 +34,12 @@ class UserController extends BaseController{
             email,
             passwd:md5(passwd*HashSalt)
         })
-        console.log('user==',user)
+        // console.log('user==',user)
         if(!user){
             return this.error('用户密码错误')
         }
         //用户的信息加密token 返回
-        console.log('app.config.jwt',app.config.jwt)
+        // console.log('app.config.jwt',app.config.jwt)
         const token = jwt.sign({
             _id:user._id,
             email,

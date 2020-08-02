@@ -8,3 +8,8 @@ eggjs+nuxtjs
 2. 用户信息
     1 信息的增删改查
     2 头像的上传
+
+
+# 后台开发
+# 数据库使用 mongodb
+# 启动数据库 mongodb/bin --> 双击 mongod.exe

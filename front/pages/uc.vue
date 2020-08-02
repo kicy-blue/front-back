@@ -21,9 +21,9 @@
             别的数字 方块高度显示
             尽可能让方块看起来是正方形--》动态计算
              -->
-             <pre>
-                 {{chunks | json}}
-             </pre>
+             <!-- <pre>
+                 {{chunks || json}}
+             </pre> -->
             <div class="cube-container" :style="{width:cubeWidth+'px'}">
                 <div class="cube" v-for="chunk in chunks" :key="chunk.name">
                     <div :class="{
@@ -31,7 +31,7 @@
                         'success':chunk.progress==100,
                         'error':chunk.progress<0
                         }"
-                        :style="{height:chunks.progress+'%'}">
+                        :style="{height:chunk.progress+'%'}">
                         <i class="el-icon-loading" style="color:#f56c6c" v-if="chunk.progress<100 && chunk.progress>0"></i>
                     </div>
                 </div>
@@ -281,22 +281,40 @@ export default {
             console.log('文件hash',hash)
             this.hash = hash;
 
+            //32节---实现秒传
+            //问一下后端，文件是否上传过，如果没有，是否又存在的切片
+            const {data:{uploaded,uploadedList}} = await this.$http.post('/checkfile',{
+                hash:this.hash,
+                ext:this.file.name.split('.').pop()
+            })
+
+            console.log('uploaded',uploaded)
+
+            if(uploaded){
+                //秒传
+                return this.$message.success('秒传成功！')
+            }
+
             //28节----切片给上传
             this.chunks = chunks.map((chunk,index)=>{
                 //切片的名字 hash+index
-                //变成结构化的数据
                 const name = hash + '-' + index
+                //变成结构化的数据
                 return {
                     hash,
                     name,
                     index,
-                    chunk:chunk.file
+                    chunk:chunk.file,
+                    //设置进度条,已经上传的，设为100，否则时0
+                    progress:uploadedList.indexOf(name)>-1?100:0
                 }
             })
            
-            await this.uploadChunks()
+            await this.uploadChunks(uploadedList)
 
             return
+            //一下是其他简单的上传方式
+
             //文件是二进制的内容，放在formData里
             const form  = new FormData()
             form.append('name','file') //append把文件放进去
@@ -308,26 +326,114 @@ export default {
             //    }
             })
         },
-        async uploadChunks(){
-            const request = this.chunks.map((chunk,index)=>{
+        async uploadChunks(uploadedList){
+            console.log('uploadedList',uploadedList,'this.chunks',this.chunks)
+            const requests = this.chunks.map((chunk,index)=>{
                 //转成promise
+                console.log('每个切片',chunk)
                 const form = new FormData()
                 form.append('chunk',chunk.chunk)
                 form.append('name',chunk.name)
                 form.append('hash',chunk.hash)
                 // form.append('index',chunk.index)//可以不传，后台不需要
-                return form  //把整个chunk变成结构化的form
+                return {form,index:chunk.index,error:0}  //把整个chunk变成结构化的form
 
-            }).map((form,index)=>this.$http.post('/uploadfile',form,{
-                onUploadProgress:progress=>{
-                    console.log('index,progress',index,progress)
-                    //不是整体的进度条了，而是每个区块有自己的进度条，整体的进度条需要计算
-                    this.chunks[index].progress = Number(((progress.loaded/progress.total)*100).toFixed)
+            // {form,index})  这里的index时chunk的index
+            })
+            // .map(({form,index})=>this.$http.post('/uploadfile',form,{
+            //     onUploadProgress:progress=>{
+            //         //不是整体进度条了，二十每个区块的进度条，整体进度条需要计算出来
+            //         console.log('index,progress',index,progress)
+            //         this.chunks[index].progress = Number(((progress.loaded/progress.total)*100).toFixed(2))
+            //         // this.$set(this.chunks[index],'progress',_progress)
+            //         console.log('uploadProgress',this.chunks[index])
+            //    }
+            // }))
 
-                }
-            }))
             // @todo 并发量控制
-            await Promise.all(request)
+            //尝试申请tcp连接过多，也会造成卡顿 （同一时间发出很多的request请求）
+            //异步的并发数控制，
+            // await Promise.all(requests)
+            console.log('requests======',requests)
+            await this.sendRequest(requests)
+            await this.mergeRequest()
+        },
+        /*
+        ****扩展：上传区块大小根据当前网络计算
+            TCP慢启动，先上传一个初始区块，比如10kb，根据山川成功时间，决定下一个区块是20k，还是50k，还是5k,
+            下一个一样的逻辑。肯能是100k，200k，或者2k
+        */
+
+        //上传可能报错
+        //报错之后，进度条变红，开始重试
+        //一个切片重试失败三次，整体全部终止
+        async sendRequest(chunks,limit=4){
+            //限制并发数
+            //一个数组，长度时limit
+            return new Promise((resolve,reject)=>{
+                let len = chunks.length
+                let counter = 0
+                let isStop = false;
+
+                const start = async ()=> {
+                    if(isStop) return //终止所有任务
+
+                    const task = chunks.shift() //弹出一个任务
+                    console.log(chunks,'task',task)
+                    if(task){
+                        const {form,index,error} = task
+                        console.log('form',form)
+
+                        try{
+                            await this.$http.post('/uploadfile',form,{
+                                onUploadProgress:progress=>{
+                                    //不是整体进度条了，二十每个区块的进度条，整体进度条需要计算出来
+                                    this.chunks[index].progress = Number(((progress.loaded/progress.total)*100).toFixed(2))
+                                }
+                            })
+                            if(counter==len-1){
+                                //最后一个任务
+                                resolve()
+                            }else{
+                                counter++
+                                //启动下一个任务
+                                start()
+                            }
+                        }catch(e){
+                            this.chunks[index].progress = -1 //-1标红
+
+                            //失败3次内尝试启动
+                            if(error<3){
+                                error++
+                                chunks.unshift(task)
+                                start()
+                            }else{
+                                //错误三次
+                                isStop = true
+                                reject()
+                            }
+                        }
+                    }
+
+                    
+                }
+
+                while(limit>0){
+                    //启动limit个任务
+                    //模拟延迟
+                    setTimeout(()=>{
+                        start()
+                    },Math.random()*2000)
+                    limit -= 1
+                }
+            })
+        },
+        async mergeRequest(){
+            this.$http.post('mergefile',{
+                ext:this.file.name.split('.').pop(),
+                size:CHUNK_SIZE,//每个区块的大小
+                hash:this.hash
+            })
         },
         handleFilerChange(e){
             const [file] = e.target.files
