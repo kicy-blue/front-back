@@ -1,8 +1,70 @@
 <template>
-  <div>
-    <nuxt />
-  </div>
+<el-container>
+    <el-header>
+        <el-menu mode="horizontal">
+            <el-menu-item index="0">
+                <img src="/logo.jpg" alt="">
+            </el-menu-item>
+            <el-menu-item>
+                <nuxt-link to="/"></nuxt-link>
+            </el-menu-item>
+
+            <template v-if="userInfo.id">
+                 <el-menu-item>
+                    <a>退出</a>
+                </el-menu-item>
+                <el-menu-item>
+                    <a>{{userInfo.nickname}}</a>
+                </el-menu-item>
+                <el-menu-item>
+                    <nuxt-link to="/editor/new">写文章</nuxt-link>
+                </el-menu-item>
+            </template>
+            
+            <template v-else>
+                <el-menu-item>
+                    <nuxt-link to="/register">注册</nuxt-link>
+                </el-menu-item>
+                <el-menu-item>
+                    <nuxt-link to="/login">登录</nuxt-link>
+                </el-menu-item>
+            </template>
+
+        </el-menu>
+
+    </el-header>
+
+    <el-main>
+        <nuxt />
+    </el-main>
+
+    <el-footer>
+
+    </el-footer>
+</el-container>
+
 </template>
+
+<script>
+export default {
+    mounted(){
+        this.getUserInfo()
+    },
+    computed:{
+        userInfo(){
+            return this.$store.state.user
+        }
+    },
+    methods:{
+        async getUserInfo(){
+            const token = localStorage.getItem('token')
+            if(token){
+                this.$store.dispatch('user/detail')
+            }
+        }
+    }
+}
+</script>
 
 <style>
 html {

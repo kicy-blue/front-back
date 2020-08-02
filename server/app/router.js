@@ -7,6 +7,7 @@ module.exports = app => {
     const { router, controller } = app
     const jwt = app.middleware.jwt({app})
     router.get('/', controller.home.index)
+    router.get('/article',controller.home.article)
     //验证码 服务
     router.get('/captcha',controller.util.captcha)
     router.get('/sendcode',controller.util.sendcode)
@@ -21,6 +22,7 @@ module.exports = app => {
         router.post('/register',register)
         router.post('/login',login)
         router.get('/info',jwt,info)
+        router.get('/detail',jwt,info)
         router.get('/verify',verify)
     })
   
